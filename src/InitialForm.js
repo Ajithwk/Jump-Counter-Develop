@@ -13,7 +13,7 @@ function InitialForm({ onFormDataChange }) {
         phaseTwoSeconds: '',
         numberOfBins: '',
         binDurationMinutes: '',
-        binDurationSeconds: '',
+        binDurationSecondss: '',
     });
 
     const handleNumberOfSubjectsChange = (e) => {
