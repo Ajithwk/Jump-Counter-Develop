@@ -1,87 +1,96 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import MyMovie from "./MyMovie1.mp4"
 
-function SubjectSelection({ onFormDataChange }) {
-    const navigate = useNavigate();
-    const [numberOfSubjects, setNumberOfSubjects] = useState(0);
-    const [subjectsData, setSubjectsData] = useState([]);
+function SubjectSelection(props) {
+    const location = useLocation();
+    const [bin,setBin]=useState(1);
+    const [seconds, setSeconds] = useState(0);
+  const [minutes, setMinutes] = useState(0);
+  const [hours, setHours] = useState(0);
+  const [running, setRunning] = useState(false);
+  const videoRef = useRef(null);
+  const formData = location.state;
 
-    // Whenever the number of subjects changes, update the subjectsData state
-    const handleNumberOfSubjectsChange = (e) => {
-        const newNumberOfSubjects = parseInt(e.target.value, 10);
-        setNumberOfSubjects(newNumberOfSubjects);
-        setSubjectsData(Array.from({ length: newNumberOfSubjects }, () => ({
-            hours: '',
-            minutes: '',
-            dropdownSelection: '' // Assuming a default dropdown value
-        })));
-    };
+  useEffect(() => {
+    console.log(location.state)
+    let interval;
+    if (running) {
+      // Immediately start playing the video
+      videoRef.current.play();
 
-    // Handle individual input changes for each subject's duration and dropdown
-    const handleSubjectDataChange = (index, field, value) => {
-        const updatedSubjectsData = [...subjectsData];
-        updatedSubjectsData[index] = {
-            ...updatedSubjectsData[index],
-            [field]: value
-        };
-        setSubjectsData(updatedSubjectsData);
-    };
+      // Start the timer
+      interval = setInterval(() => {
+        setSeconds((prevSeconds) => {
+          if (prevSeconds === 59) {
+            setMinutes((prevMinutes) => {
+              if (prevMinutes === 59) {
+                setHours((prevHours) => prevHours + 1);
+                return 0;
+              }
+              return prevMinutes + 1;
+            });
+            return 0;
+          }
+          return prevSeconds + 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(interval);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    }
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log({ numberOfSubjects, subjectsData });
-        navigate('/next-page'); // or whatever your next route is
-        onFormDataChange({ numberOfSubjects, subjectsData });
-    };
+    return () => clearInterval(interval);
+  }, [running]);
+
+  const handleStart = () => {
+    setRunning(true);
+  };
+
+  const handleStop = () => {
+    setRunning(false);
+  };
+
+  const handleVideoEnd = () => {
+    setRunning(false);
+  };
+
+const handleBin = () =>{
+    var hms =hours.toString().padStart(2, "0")+":"+minutes.toString().padStart(2, "0")+":"+seconds.toString().padStart(2, "0");   // your input string
+    var a = hms.split(':'); // split it at the colons
+
+    var s = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]); 
+    // if(s<=formData.)
+    return bin
+}
 
     return (
-        <form onSubmit={handleSubmit}>
-            <div className="form-group">
-                <label>
-                    Number of Subjects:
-                    <input
-                        type="number"
-                        value={numberOfSubjects}
-                        onChange={handleNumberOfSubjectsChange}
-                    />
-                </label>
-            </div>
+     <div>
 
-            {subjectsData.map((subject, index) => (
-                <div key={index} className="form-group">
-                    <label>
-                        Subject {index + 1} Duration:
-                        Hours:
-                        <input
-                            type="number"
-                            value={subject.hours}
-                            onChange={(e) => handleSubjectDataChange(index, 'hours', e.target.value)}
-                        />
-                        Minutes:
-                        <input
-                            type="number"
-                            value={subject.minutes}
-                            onChange={(e) => handleSubjectDataChange(index, 'minutes', e.target.value)}
-                        />
-                    </label>
-                    <label>
-                        Dropdown:
-                        <select
-                            value={subject.dropdownSelection}
-                            onChange={(e) => handleSubjectDataChange(index, 'dropdownSelection', e.target.value)}
-                        >
-                            {/* Assuming these are your dropdown options */}
-                            <option value="">Please select</option>
-                            <option value="option1">Option 1</option>
-                            <option value="option2">Option 2</option>
-                            {/* ...other options... */}
-                        </select>
-                    </label>
-                </div>
-            ))}
-
-            <button type="submit">Next</button>
-        </form>
+     <button onClick={handleStart} disabled={running}>
+       Start
+     </button>
+     <button onClick={handleStop} disabled={!running}>
+       Stop
+     </button>
+     <video
+       ref={videoRef}
+       width="600"
+       height="400"
+       controls
+       onEnded={handleVideoEnd}
+       src={MyMovie} // Replace with the actual path
+       type="video/mp4"
+     >
+       Your browser does not support the video tag.
+     </video>
+     <p>{`${hours.toString().padStart(2, "0")}:${minutes
+       .toString()
+       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`}</p>
+       <p>Bin {handleBin()}</p>
+   </div>
     );
 }
 

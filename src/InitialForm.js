@@ -1,62 +1,124 @@
 // InitialForm.js
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-function InitialForm({ onFormDataChange }) {
+import { Navigate, useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
+const InitialForm = ()=> {
+    // const history = useHistory();
     const navigate = useNavigate();
     const [numberOfSubjects, setNumberOfSubjects] = useState('');
     const [numberOfBins, setNumberOfBins] = useState('');
+    const [binSize, setBinSize] = useState('');
     const [formData, setFormData] = useState({
         numberOfSubjects: '',
         subjects: [],
-        phaseTwoMinutes: '',
-        phaseTwoSeconds: '',
+        // phaseOneMinutes: '',
+        // phaseOneSeconds: '',
+        // phaseTwoMinutes: '',
+        // phaseTwoSeconds: '',
+        binSize:0,
         numberOfBins: '',
         binDurationMinutes: '',
-        binDurationSecondss: '',
+        binDurationSecondsnpm: '',
     });
 
     const handleNumberOfSubjectsChange = (e) => {
         setNumberOfSubjects(e.target.value)
     };
     const handleNumberOfBins = (e) => {
-        setNumberOfBins(e.target.value)
+        setFormData({...formData,numberOfBins:e.target.value});
     };
     const handleFileChange = (event) => {
 
     };
 
     const handleNext = () => {
+       
         // Navigate to the subject selection page
-        onFormDataChange({ numberOfSubjects: numberOfSubjects });
-        navigate('/select-subject');
+        // onFormDataChange({ numberOfSubjects: numberOfSubjects });
+        // History.pushState(formData,'/select-subject');
+        navigate('/select-subject',{state:formData})
+        // return  <SubjectSelection formData={formData}/>
     };
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === "numberOfSubjects") {
-            setFormData(prevFormData => ({
-                ...prevFormData,
-                numberOfSubjects: value,
-                subjects: Array.from({ length: parseInt(value, 10) }, () => ({ minutes: '', seconds: '' }))
-            }));
-        } else {
-            setFormData(prevFormData => ({
-                ...prevFormData,
-                [name]: value,
-            }));
-        }
+        // if (name === "numberOfSubjects") {
+            setFormData(prevFormData => {
+                const newSubjects = Array.from({ length: parseInt(value, 10) }, () => ({ minutes: '', seconds: '' }));
+                return {
+                    ...prevFormData,
+                    numberOfSubjects: value,
+                    subjects: newSubjects,
+                };
+            });
+        // } else if (name === "numberOfBins") {
+        //     const newNumberOfBins = value;
+        //     setNumberOfBins(newNumberOfBins);
+        //     // Now we update the formData state with the new number of bins
+        //     setFormData(prevFormData => {
+        //         const newBinSize = calculateBinSize(prevFormData.subjects, newNumberOfBins);
+        //         return {
+        //             ...prevFormData,
+        //             numberOfBins: newNumberOfBins,
+        //         };
+        //     });
+        // } else {
+        //     setFormData(prevFormData => ({
+        //         ...prevFormData,
+        //         [name]: value,
+        //     }));
+        // }
+        // let {name,value} = e.target;
+    //    setNumberOfSubjects(value)
     };
     const handleSubjectChange = (e, index) => {
         const { name, value } = e.target;
-        const newSubjects = formData.subjects.map((subject, idx) => {
-            if (idx === index) {
-                return { ...subject, [name]: value };
-            }
-            return subject;
-        });
-        setFormData({ ...formData, subjects: newSubjects });
-    };
+        setFormData(prevFormData => {
+            const newSubjects = prevFormData.subjects.map((subject, idx) => {
+                if (idx === index) {
+                    return { ...subject, [name.split('_')[0]]: value };
+                }
+                return subject;
+            });
 
+            return {
+                ...prevFormData,
+                subjects: newSubjects,
+                binDurationMinutes: Math.floor(binSize / 60),
+                binDurationSeconds: binSize % 60,
+            };
+        });
+        calculateBinSize();
+    };
+    const calculateBinSize = () => {
+        let totalSecondsArray = formData.subjects.map((subject) => {
+            const totalSecondsPhaseOne =
+                parseInt(subject.phaseOneMinutes, 10) * 60 + parseInt(subject.phaseOneSeconds, 10);
+
+            const totalSecondsPhaseTwo =
+                parseInt(subject.phaseTwoMinutes, 10) * 60 + parseInt(subject.phaseTwoSeconds, 10);
+
+            return totalSecondsPhaseOne + totalSecondsPhaseTwo;
+        });
+        // totalSecondsArray = [totalSecondsArray[0]]
+        const filteredSecondsArray = totalSecondsArray.filter(seconds => typeof seconds === 'number' && !isNaN(seconds));
+        const totalSeconds = filteredSecondsArray.reduce((acc, seconds) => acc + seconds, 0);
+        const val = Number.isFinite(parseInt(formData.numberOfBins)) ? totalSeconds / parseInt(formData.numberOfBins) : 0;
+
+        setBinSize( totalSeconds / formData.numberOfBins);
+        
+
+    };
+    const handleBinSize=(e)=>{
+        setBinSize(e.target.value)
+        setFormData(prevFormData => {
+
+            return {
+                ...prevFormData,
+                binSize
+            };
+        });
+    }
     // Only include the inputs for the first part of the form here
     return (
         <div>
@@ -78,7 +140,7 @@ function InitialForm({ onFormDataChange }) {
                     <input
                         type="number"
                         name="numberOfBins"
-                        value={numberOfBins}
+                        value={formData.numberOfBins}
                         onChange={handleNumberOfBins}
                     />
                 </label>
@@ -102,16 +164,16 @@ function InitialForm({ onFormDataChange }) {
                         Phase Duration 1:
                         Minutes:
                         <input
-                            type="text"
-                            name={`minutes`}
-                            value={subject.minutes}
+                            type="number"
+                            name={`phaseOneMinutes_${index}`}
+                            value={subject.phaseOneMinutes}
                             onChange={(e) => handleSubjectChange(e, index)}
                         />
                         Seconds:
                         <input
-                            type="text"
-                            name={`seconds`}
-                            value={subject.seconds}
+                            type="number"
+                            name={`phaseOneSeconds_${index}`}
+                            value={subject.phaseOneSeconds}
                             onChange={(e) => handleSubjectChange(e, index)}
                         />
                     </label>
@@ -119,16 +181,16 @@ function InitialForm({ onFormDataChange }) {
                         Phase Duration 2:
                         Minutes:
                         <input
-                            type="text"
-                            name={`minutes`}
-                            value={subject.minutes}
+                            type="number"
+                            name={`phaseTwoMinutes_${index}`}
+                            value={subject.phaseTwoMinutes}
                             onChange={(e) => handleSubjectChange(e, index)}
                         />
                         Seconds:
                         <input
-                            type="text"
-                            name={`seconds`}
-                            value={subject.seconds}
+                            type="number"
+                            name={`phaseTwoSeconds_${index}`}
+                            value={subject.phaseTwoSeconds}
                             onChange={(e) => handleSubjectChange(e, index)}
                         />
                     </label>
@@ -153,7 +215,23 @@ function InitialForm({ onFormDataChange }) {
                 </div>
             ))}
 
-            <button type="button" onClick={handleNext}>Next</button>
+            <div className="form-group">
+                <label>
+                    Bin Size:
+                    <input
+                        type="text"
+                        name="binSize"
+                        value={binSize}
+                        onChange={handleBinSize}
+                        // readOnly
+                    />
+                </label>
+            </div>
+            
+            {/* <button type="button"><Link to="/select-subject" state={{formData}}>
+        Next Step
+      </Link></button> */}
+      <button type='button' onClick={handleNext}>Next</button>
         </div>
     );
 }
