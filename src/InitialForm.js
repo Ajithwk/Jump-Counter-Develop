@@ -8,7 +8,7 @@ const InitialForm = ()=> {
     const navigate = useNavigate();
     const [numberOfSubjects, setNumberOfSubjects] = useState('');
     const [numberOfBins, setNumberOfBins] = useState('');
-    const [binSize, setBinSize] = useState('');
+    const [binSize, setBinSize] = useState(0);
     const [formData, setFormData] = useState({
         numberOfSubjects: '',
         subjects: [],
@@ -88,7 +88,7 @@ const InitialForm = ()=> {
                 binDurationSeconds: binSize % 60,
             };
         });
-        calculateBinSize();
+        // calculateBinSize();
     };
     const calculateBinSize = () => {
         let totalSecondsArray = formData.subjects.map((subject) => {
@@ -110,12 +110,12 @@ const InitialForm = ()=> {
 
     };
     const handleBinSize=(e)=>{
-        setBinSize(e.target.value)
+        // setBinSize(e.target.value)
         setFormData(prevFormData => {
 
             return {
                 ...prevFormData,
-                binSize
+                binSize:e.target.value
             };
         });
     }
@@ -197,6 +197,7 @@ const InitialForm = ()=> {
                     <label>
                         SubjectCode:
                         <select
+                        name="dropdownSelection"
                             value={subject.dropdownSelection}
                             onChange={(e) => handleSubjectChange(e, index)}
                         >
@@ -221,7 +222,7 @@ const InitialForm = ()=> {
                     <input
                         type="text"
                         name="binSize"
-                        value={binSize}
+                        value={formData.binSize}
                         onChange={handleBinSize}
                         // readOnly
                     />
