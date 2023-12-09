@@ -1,156 +1,169 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import MyMovie from "./MyMovie1.mp4"
+import MyMovie from "./MyMovie1.mp4";
 
 function SubjectSelection(props) {
-    const location = useLocation();
-    const [bin,setBin]=useState(1);
-    const [seconds, setSeconds] = useState(0);
-  const [minutes, setMinutes] = useState(0);
-  const [hours, setHours] = useState(0);
+  const location = useLocation();
+  const [bin, setBin] = useState(1);
   const [running, setRunning] = useState(false);
-  const [phase,setPhase] = useState([1]);
+  const [phase, setPhase] = useState(Array.from({ length: location.state.subjects.length }, () => [1]));
   const videoRef = useRef(null);
-  const [currentSubject, setCurrentSubject] = useState(1)
-  const [frequency,setFrequency]=useState([0])
-  const formData = location.state;
+  const [currentSubject, setCurrentSubject] = useState(1);
+  const [frequency, setFrequency] = useState(Array(location.state.subjects.length).fill(0));
+  const [formData] = useState(location.state);
+  const [subjectTimes, setSubjectTimes] = useState(formData.subjects.map(() => ({ hours: 0, minutes: 0, seconds: 0 })));
+
+  const calculateSubjectTime = useCallback(
+    (subject) => {
+      const time = subjectTimes[subject - 1];
+      return time.hours * 3600 + time.minutes * 60 + time.seconds;
+    },
+    [subjectTimes]
+  );
+
+  const handleStart = useCallback(() => {
+    setRunning(true);
+  }, []);
+
+  const handleStop = useCallback(() => {
+    setRunning(false);
+    videoRef.current.pause();
+  }, []);
+
+  const handleVideoEnd = useCallback(() => {
+    setRunning(false);
+  }, []);
+
+  const handleVideoPlay = useCallback(() => {
+    videoRef.current.play();
+  }, []);
+
+  const handleVideoPause = useCallback(() => {
+    videoRef.current.pause();
+  }, []);
+
+  const handleTick = useCallback(() => {
+    setSubjectTimes((prevTimes) => {
+      const newTimes = [...prevTimes];
+      newTimes[currentSubject - 1] = {
+        hours: newTimes[currentSubject - 1].hours,
+        minutes: newTimes[currentSubject - 1].minutes,
+        seconds: newTimes[currentSubject - 1].seconds + 1,
+      };
+      return newTimes;
+    });
+  }, [currentSubject]);
+
+  const handleBin = useCallback(() => {
+    const s = calculateSubjectTime(currentSubject);
+  const newBin = Math.floor(s / formData.binSize) + 1;
+
+  if (newBin !== bin) {
+    setBin(newBin);
+  }
+
+  setPhase((prevPhase) => {
+    const newPhase = [...prevPhase];
+
+    if (!newPhase[currentSubject - 1]) {
+      newPhase[currentSubject - 1] = [];
+    }
+
+    // Check if the current bin has a phase defined
+    if (newPhase[currentSubject - 1][newBin - 1] === undefined) {
+      // If not, set it to 1
+      newPhase[currentSubject - 1][newBin - 1] = 1;
+    } else if (newPhase[currentSubject - 1][newBin - 1] === 1) {
+      // If it is already 1, change it to 2 only if there are 2 phases
+      if (formData.subjects[currentSubject - 1].numPhases === 2) {
+        newPhase[currentSubject - 1][newBin - 1] = 2;
+      }
+    }
+
+    return newPhase;
+    });
+  }, [currentSubject, bin, calculateSubjectTime, formData.binSize, formData.subjects, setBin, setPhase]);
 
   useEffect(() => {
-
     handleBin();
+  }, [currentSubject, bin, handleBin]);
+
+  useEffect(() => {
     let interval;
+
     if (running) {
-      // Immediately start playing the video
-      videoRef.current.play();
-
-      // Start the timer
-      interval = setInterval(() => {
-        setSeconds((prevSeconds) => {
-          if (prevSeconds === 59) {
-            setMinutes((prevMinutes) => {
-              if (prevMinutes === 59) {
-                setHours((prevHours) => prevHours + 1);
-                return 0;
-              }
-              return prevMinutes + 1;
-            });
-            return 0;
-          }
-          return prevSeconds + 1;
-        });
-      }, 1000);
-
+      videoRef.current.currentTime = calculateSubjectTime(currentSubject);
+      videoRef.current.addEventListener('canplaythrough', handleVideoPlay);
+      videoRef.current.addEventListener('ended', handleVideoEnd);
+      interval = setInterval(handleTick, 1000);
     } else {
       clearInterval(interval);
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
+      videoRef.current.removeEventListener('canplaythrough', handleVideoPlay);
+      videoRef.current.removeEventListener('ended', handleVideoEnd);
     }
 
-    return () => clearInterval(interval);
-  }, [running,hours, minutes, seconds]);
-useEffect(()=>{
-  const handleKeyDown=(e)=>{
-    if(!isNaN(e.key)){
-      if(parseInt(e.key)<=formData.subjects.length){
-        setCurrentSubject(parseInt(e.key))
-      }
-      
-    }
-    if(e.key=='f'){
-      let temp = frequency;
-      temp[currentSubject-1]=temp[currentSubject-1]+1
-      setFrequency([...temp])
-    }
-  }
-  document.addEventListener('keydown', handleKeyDown, true);
     return () => {
-        document.removeEventListener('keydown', handleKeyDown);
+      clearInterval(interval);
+      videoRef.current.removeEventListener('canplaythrough', handleVideoPlay);
+      videoRef.current.removeEventListener('ended', handleVideoEnd);
     };
-})
-  const handleStart = () => {
-    setRunning(true);
-  };
+  }, [running, currentSubject, bin, calculateSubjectTime, handleVideoPlay, handleVideoEnd, handleTick]);
 
-  const handleStop = () => {
-    setRunning(false);
-  };
-
-  const handleVideoEnd = () => {
-    setRunning(false);
-  };
-
-const handleBin = () =>{
-  // console.log({formData})
-    var hms =hours.toString().padStart(2, "0")+":"+minutes.toString().padStart(2, "0")+":"+seconds.toString().padStart(2, "0");   // your input string
-    var a = hms.split(':'); // split it at the colons
-
-    var s = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]); 
-      if((s%formData.binSize)==0 && s!=0){ 
-
-        setBin((s/formData.binSize)+1)
-
-      }
-      if(formData.subjects.length>phase.length){
-        setPhase([...phase,[1]*(formData.subjects.length-phase.length)])
-      }
-      if(formData.subjects.length>frequency.length){
-        setFrequency([...frequency,[0]*(formData.subjects.length-frequency.length)])
-       
-      }
-      for(let i in formData.subjects){
-        if(((formData.subjects[i].phaseOneMinutes)*60+ formData.subjects[i].phaseOneSeconds)==s ){
-          let tem = phase;
-          if(tem.length<=i){
-            tem.push(2)
-          }else{
-            tem[i]=2
-          }
-          setPhase(tem)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isNaN(e.key)) {
+        const selectedSubject = parseInt(e.key);
+        if (selectedSubject <= formData.subjects.length) {
+          setCurrentSubject(selectedSubject);
         }
-        
+      } else if (e.key === 'f' && !e.repeat) {
+        setFrequency((prevFrequency) => {
+          const updatedFrequency = [...prevFrequency];
+          updatedFrequency[currentSubject - 1] = (updatedFrequency[currentSubject - 1] || 0) + 1;
+          return updatedFrequency;
+        });
       }
+    };
 
-    return bin
-}
+    document.addEventListener('keydown', handleKeyDown);
 
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentSubject, formData.subjects, setFrequency]);
 
-    return (
-     <div>
-
-     <button onClick={handleStart} disabled={running}>
-       Start
-     </button>
-     <button onClick={handleStop} disabled={!running}>
-       Stop
-     </button>
-     <video
-       ref={videoRef}
-       width="600"
-       height="400"
-       controls
-       onEnded={handleVideoEnd}
-       src={MyMovie} // Replace with the actual path
-       type="video/mp4"
-     >
-       Your browser does not support the video tag.
-     </video>
-     <div>
-     <p>{`${hours.toString().padStart(2, "0")}:${minutes
-       .toString()
-       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`}</p>
-       <p>Subject we are in: {currentSubject}</p>
-       <p>Bin {bin}</p>
-       <p>Phase we are in: {phase[currentSubject-1]}</p>
-       <p>Freauency: {frequency[currentSubject-1]}</p>
-       <p>Date :{(new Date()).toLocaleString()}</p>
-       <p>Group: {formData.subjects[currentSubject-1].dropdownSelection}</p>
-       <p>Condition:  <input type="text" /></p>
-     </div>
-
-
-   </div>
-    );
+  return (
+    <div>
+      <button onClick={ handleStart} disabled={running}>
+        Start
+      </button>
+      <button onClick={handleStop} disabled={!running}>
+        Pause
+      </button>
+      <video
+        ref={videoRef}
+        width="600"
+        height="400"
+        controls
+        onEnded={handleVideoEnd}
+        src={MyMovie} // Replace with the actual path
+        type="video/mp4"
+      >
+        Your browser does not support the video tag.
+      </video>
+      <div>
+        <p>{`${subjectTimes[currentSubject - 1].hours.toString().padStart(2, "0")}:${subjectTimes[currentSubject - 1].minutes.toString().padStart(2, "0")}:${subjectTimes[currentSubject - 1].seconds.toString().padStart(2, "0")}`}</p>
+        <p>Subject we are in: {currentSubject}</p>
+        <p>Bin {bin}</p>
+        <p>Phase we are in: {phase[currentSubject - 1][bin - 1]}</p>
+        <p>Frequency: {frequency[currentSubject - 1]}</p>
+        <p>Date: {(new Date()).toLocaleString()}</p>
+        <p>Group: {formData.subjects[currentSubject - 1].dropdownSelection}</p>
+        <p>Condition: <input type="text" /></p>
+      </div>
+    </div>
+  );
 }
 
 export default SubjectSelection;
+
