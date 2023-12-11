@@ -21,12 +21,11 @@ function SubjectSelection(props) {
     [subjectTimes]
   );
 
-  const handleStart = useCallback(() => {
-    setRunning(true);
+  const handleVideoPlay = useCallback(() => {
+    videoRef.current.play().catch((error) => console.error("Error playing video:", error));
   }, []);
 
-  const handleStop = useCallback(() => {
-    setRunning(false);
+  const handleVideoPause = useCallback(() => {
     videoRef.current.pause();
   }, []);
 
@@ -34,53 +33,48 @@ function SubjectSelection(props) {
     setRunning(false);
   }, []);
 
-  const handleVideoPlay = useCallback(() => {
-    videoRef.current.play();
+  const cleanupVideo = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+      videoRef.current.removeEventListener('canplaythrough', handleVideoPlay);
+      videoRef.current.removeEventListener('ended', handleVideoEnd);
+    }
+  }, [handleVideoPlay, handleVideoEnd]);
+
+  const handleStart = useCallback(() => {
+    setRunning(true);
   }, []);
 
-  const handleVideoPause = useCallback(() => {
-    videoRef.current.pause();
-  }, []);
-
-  const handleTick = useCallback(() => {
-    setSubjectTimes((prevTimes) => {
-      const newTimes = [...prevTimes];
-      newTimes[currentSubject - 1] = {
-        hours: newTimes[currentSubject - 1].hours,
-        minutes: newTimes[currentSubject - 1].minutes,
-        seconds: newTimes[currentSubject - 1].seconds + 1,
-      };
-      return newTimes;
-    });
-  }, [currentSubject]);
+  const handleStop = useCallback(() => {
+    setRunning(false);
+    cleanupVideo();
+  }, [cleanupVideo]);
 
   const handleBin = useCallback(() => {
     const s = calculateSubjectTime(currentSubject);
-  const newBin = Math.floor(s / formData.binSize) + 1;
+    const newBin = Math.floor(s / formData.binSize) + 1;
 
-  if (newBin !== bin) {
-    setBin(newBin);
-  }
-
-  setPhase((prevPhase) => {
-    const newPhase = [...prevPhase];
-
-    if (!newPhase[currentSubject - 1]) {
-      newPhase[currentSubject - 1] = [];
+    if (newBin !== bin) {
+      setBin(newBin);
     }
 
-    // Check if the current bin has a phase defined
-    if (newPhase[currentSubject - 1][newBin - 1] === undefined) {
-      // If not, set it to 1
-      newPhase[currentSubject - 1][newBin - 1] = 1;
-    } else if (newPhase[currentSubject - 1][newBin - 1] === 1) {
-      // If it is already 1, change it to 2 only if there are 2 phases
-      if (formData.subjects[currentSubject - 1].numPhases === 2) {
-        newPhase[currentSubject - 1][newBin - 1] = 2;
+    setPhase((prevPhase) => {
+      const newPhase = [...prevPhase];
+
+      if (!newPhase[currentSubject - 1]) {
+        newPhase[currentSubject - 1] = [];
       }
-    }
 
-    return newPhase;
+      if (newPhase[currentSubject - 1][newBin - 1] === undefined) {
+        newPhase[currentSubject - 1][newBin - 1] = 1;
+      } else if (newPhase[currentSubject - 1][newBin - 1] === 1) {
+        if (formData.subjects[currentSubject - 1].numPhases === 2) {
+          newPhase[currentSubject - 1][newBin - 1] = 2;
+        }
+      }
+
+      return newPhase;
     });
   }, [currentSubject, bin, calculateSubjectTime, formData.binSize, formData.subjects, setBin, setPhase]);
 
@@ -92,22 +86,31 @@ function SubjectSelection(props) {
     let interval;
 
     if (running) {
+      cleanupVideo();
       videoRef.current.currentTime = calculateSubjectTime(currentSubject);
       videoRef.current.addEventListener('canplaythrough', handleVideoPlay);
       videoRef.current.addEventListener('ended', handleVideoEnd);
-      interval = setInterval(handleTick, 1000);
+      interval = setInterval(() => {
+        setSubjectTimes((prevTimes) => {
+          const newTimes = [...prevTimes];
+          newTimes[currentSubject - 1] = {
+            hours: newTimes[currentSubject - 1].hours,
+            minutes: newTimes[currentSubject - 1].minutes,
+            seconds: newTimes[currentSubject - 1].seconds + 1,
+          };
+          return newTimes;
+        });
+      }, 1000);
     } else {
+      cleanupVideo();
       clearInterval(interval);
-      videoRef.current.removeEventListener('canplaythrough', handleVideoPlay);
-      videoRef.current.removeEventListener('ended', handleVideoEnd);
     }
 
     return () => {
+      cleanupVideo();
       clearInterval(interval);
-      videoRef.current.removeEventListener('canplaythrough', handleVideoPlay);
-      videoRef.current.removeEventListener('ended', handleVideoEnd);
     };
-  }, [running, currentSubject, bin, calculateSubjectTime, handleVideoPlay, handleVideoEnd, handleTick]);
+  }, [running, currentSubject, bin, calculateSubjectTime, handleVideoPlay, handleVideoEnd, cleanupVideo]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -144,7 +147,7 @@ function SubjectSelection(props) {
         ref={videoRef}
         width="600"
         height="400"
-        controls
+        controls={false}
         onEnded={handleVideoEnd}
         src={MyMovie} // Replace with the actual path
         type="video/mp4"
