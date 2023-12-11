@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import MyMovie from "./MyMovie1.mp4";
-
+import "./SubjectSelection.css";
 function SubjectSelection(props) {
   const location = useLocation();
   const [bin, setBin] = useState(1);
@@ -136,17 +136,13 @@ function SubjectSelection(props) {
   }, [currentSubject, formData.subjects, setFrequency]);
 
   return (
-    <div>
-      <button onClick={ handleStart} disabled={running}>
-        Start
-      </button>
-      <button onClick={handleStop} disabled={!running}>
-        Pause
-      </button>
-      <video
+    <div className="container1">
+      <div className="video-container">
+
+      <video id="videobox"
         ref={videoRef}
-        width="600"
-        height="400"
+        // width="1470"
+        // height="600"
         controls={false}
         onEnded={handleVideoEnd}
         src={MyMovie} // Replace with the actual path
@@ -154,19 +150,42 @@ function SubjectSelection(props) {
       >
         Your browser does not support the video tag.
       </video>
-      <div>
-        <p>{`${subjectTimes[currentSubject - 1].hours.toString().padStart(2, "0")}:${subjectTimes[currentSubject - 1].minutes.toString().padStart(2, "0")}:${subjectTimes[currentSubject - 1].seconds.toString().padStart(2, "0")}`}</p>
+      </div>
+      <div className="blocks-container">
+      
+      <div className="block">
         <p>Subject we are in: {currentSubject}</p>
-        <p>Bin {bin}</p>
+        <p>Bin: {bin}</p>
+        <p>{`${subjectTimes[currentSubject - 1].hours.toString().padStart(2, "0")}:${subjectTimes[currentSubject - 1].minutes.toString().padStart(2, "0")}:${subjectTimes[currentSubject - 1].seconds.toString().padStart(2, "0")}`}</p>
+        </div>
+      
+        <div className="block">
+          
+        <p className="frequency-block">Frequency: {frequency[currentSubject - 1]}</p>
+        
+        </div>
+      
+        <div className="block">
         <p>Phase we are in: {phase[currentSubject - 1][bin - 1]}</p>
-        <p>Frequency: {frequency[currentSubject - 1]}</p>
         <p>Date: {(new Date()).toLocaleString()}</p>
         <p>Group: {formData.subjects[currentSubject - 1].dropdownSelection}</p>
         <p>Condition: <input type="text" /></p>
+        </div>
       </div>
+
+      <div className="buttons-container">
+      <button onClick={ handleStart} disabled={running}>
+        Start
+      </button>
+      <button onClick={handleStop} disabled={!running}>
+        Pause
+      </button>
+      </div>
+      
     </div>
   );
 }
+
 
 export default SubjectSelection;
 

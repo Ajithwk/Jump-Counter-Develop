@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useHistory } from 'react-router-dom';
 // import { Link } from 'react-router-dom';
+import "./InitialForm.css";
 const InitialForm = ()=> {
     // const history = useHistory();
     const navigate = useNavigate();
@@ -121,120 +122,131 @@ const InitialForm = ()=> {
     }
     // Only include the inputs for the first part of the form here
     return (
-        <div>
-            <div className="form-group">
-                <label>
-                    Number of Subjects:
-                    <input
-                        type="number"
-                        name="numberOfSubjects"
-                        value={formData.numberOfSubjects}
-                        onChange={handleChange}
-                    />
-                </label>
-            </div>
-
-            <div className="form-group">
-                <label>
-                    Number of bins:
-                    <input
-                        type="number"
-                        name="numberOfBins"
-                        value={formData.numberOfBins}
-                        onChange={handleNumberOfBins}
-                    />
-                </label>
-            </div>
-
-            <div className="form-group">
-                <label>
-                    Video Upload:
-
-                    <input type="file"
-                        accept="video/*"
-                        onChange={handleFileChange}
-                        required />
-                </label>
-            </div>
-
-            {formData.subjects.map((subject, index) => (
-                <div key={index} className="form-group">
-                    <label>Subject {index + 1}</label>
-                    <label>
-                        Phase Duration 1:
-                        Minutes:
-                        <input
-                            type="number"
-                            name={`phaseOneMinutes_${index}`}
-                            value={subject.phaseOneMinutes}
-                            onChange={(e) => handleSubjectChange(e, index)}
-                        />
-                        Seconds:
-                        <input
-                            type="number"
-                            name={`phaseOneSeconds_${index}`}
-                            value={subject.phaseOneSeconds}
-                            onChange={(e) => handleSubjectChange(e, index)}
-                        />
-                    </label>
-                    <label>
-                        Phase Duration 2:
-                        Minutes:
-                        <input
-                            type="number"
-                            name={`phaseTwoMinutes_${index}`}
-                            value={subject.phaseTwoMinutes}
-                            onChange={(e) => handleSubjectChange(e, index)}
-                        />
-                        Seconds:
-                        <input
-                            type="number"
-                            name={`phaseTwoSeconds_${index}`}
-                            value={subject.phaseTwoSeconds}
-                            onChange={(e) => handleSubjectChange(e, index)}
-                        />
-                    </label>
-                    <label>
-                        SubjectCode:
-                        <select
-                        name="dropdownSelection"
-                            value={subject.dropdownSelection}
-                            onChange={(e) => handleSubjectChange(e, index)}
-                        >
-                            {/* Assuming these are your dropdown options */}
-                            <option value="">Please select Subject Code</option>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                            <option value="F">F</option>
-                            <option value="G">G</option>
-                            <option value="H">H</option>
-                        </select>
-                    </label>
-                </div>
-            ))}
-
-            <div className="form-group">
-                <label>
-                    Bin Size:
-                    <input
-                        type="text"
-                        name="binSize"
-                        value={formData.binSize}
-                        onChange={handleBinSize}
-                        // readOnly
-                    />
-                </label>
-            </div>
+        <div >
+        <h1 style={{ textAlign: 'center' }}>Jump Counter</h1>
+    
+    <div className='container'>
+    <div >
+       
+        <div className="form-group">
+            <label  className='block1'>
+                Number of Subjects: </label>
+                <input
+                    type="number"
+                    name="numberOfSubjects"
+                    value={formData.numberOfSubjects}
+                    onChange={handleChange}
+                />
             
-            {/* <button type="button"><Link to="/select-subject" state={{formData}}>
-        Next Step
-      </Link></button> */}
-      <button type='button' onClick={handleNext}>Next</button>
         </div>
-    );
+
+        <div className="form-group">
+            <label  className='block1'>
+                Number of bins:</label>
+                <input
+                    type="number"
+                    name="numberOfBins"
+                    value={formData.numberOfBins}
+                    onChange={handleNumberOfBins}
+                />
+            
+        </div>
+        
+
+        <div className="form-group">
+            <label className='block1'>
+                Bin Size:</label>
+                <input
+                    type="text"
+                    name="binSize"
+                    value={formData.binSize}
+                    onChange={handleBinSize}
+                    // readOnly
+                />
+            
+        </div>
+
+        <div className="form-group">
+            <label className='block1'>
+                Video Upload: </label>
+
+                <input type="file"
+                    accept="video/*"
+                    onChange={handleFileChange}
+                    required />
+            
+        </div>
+
+        {formData.subjects.map((subject, index) => (
+            <div key={index} className="form-group">
+                <label>Subject {index + 1}</label>
+                <label>
+                    Phase 1:</label>
+                    <label>Minutes:</label>
+                    <input
+                        type="number"
+                        name={`phaseOneMinutes_${index}`}
+                        value={subject.phaseOneMinutes}
+                        onChange={(e) => handleSubjectChange(e, index)}
+                    />
+                    <label> Seconds:</label>
+                    <input
+                        type="number"
+                        name={`phaseOneSeconds_${index}`}
+                        value={subject.phaseOneSeconds}
+                        onChange={(e) => handleSubjectChange(e, index)}
+                    />
+               
+                <label>
+                    Phase 2: </label>
+                    <label>Minutes:</label>
+                    <input
+                        type="number"
+                        name={`phaseTwoMinutes_${index}`}
+                        value={subject.phaseTwoMinutes}
+                        onChange={(e) => handleSubjectChange(e, index)}
+                    />
+                   <label>  Seconds:</label>
+                    <input
+                        type="number"
+                        name={`phaseTwoSeconds_${index}`}
+                        value={subject.phaseTwoSeconds}
+                        onChange={(e) => handleSubjectChange(e, index)}
+                    />
+                
+                <label>
+                    SubjectCode:</label>
+                    <select
+                    name="dropdownSelection"
+                        value={subject.dropdownSelection}
+                        onChange={(e) => handleSubjectChange(e, index)}
+                    >
+                        {/* Assuming these are your dropdown options */}
+                        <option value="">Please select Subject Code</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                        <option value="F">F</option>
+                        <option value="G">G</option>
+                        <option value="H">H</option>
+                    </select>
+                
+            </div>
+        ))}
+
+
+        
+        {/* <button type="button"><Link to="/select-subject" state={{formData}}>
+    Next Step
+  </Link></button> */}
+  <button type='button' onClick={handleNext}>Next</button>
+    </div>
+    </div>
+    </div>
+);
 }
+
 
 export default InitialForm;
