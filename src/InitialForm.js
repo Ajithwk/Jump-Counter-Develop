@@ -21,6 +21,7 @@ const InitialForm = ()=> {
         numberOfBins: '',
         binDurationMinutes: '',
         binDurationSecondsnpm: '',
+        uploadedVideo:null
     });
 
     const handleNumberOfSubjectsChange = (e) => {
@@ -29,8 +30,13 @@ const InitialForm = ()=> {
     const handleNumberOfBins = (e) => {
         setFormData({...formData,numberOfBins:e.target.value});
     };
-    const handleFileChange = (event) => {
-
+    const handleFileChange = async (event) => {
+        await setFormData(prev=>{
+            return {
+                ...prev,
+                uploadedVideo:event.target.files[0]
+            }
+        })
     };
 
     const handleNext = () => {
