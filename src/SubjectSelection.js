@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import Papa from "papaparse";
 import "./SubjectSelection.css";
 
 function SubjectSelection() {
@@ -59,7 +60,6 @@ useEffect(()=>{
       interval = setInterval(() => {
         for(let sub in formData.subjects){
           if(subjectTimerStarted[sub]){
-            console.log(subjectTimerStarted[sub])
         setSeconds((prevSeconds) => {
           if (prevSeconds[sub] == 59) {
             setMinutes((prevMinutes) => {
@@ -89,9 +89,7 @@ useEffect(()=>{
             return prevSecond;
           });
         });
-
-          
-        }
+      }
       }
       }, 1000);
     };
@@ -206,7 +204,35 @@ useEffect(()=>{
     // return bin;
 
   };
+  
+  const exportToCSV = () => {
+    const csvData = [
+      ["", ...formData.subjects.map((_, index) => `Subject ${index + 1}`)],
+      ["Preinjection/Phase 1"],
+      ["Bin 1", ...bin.slice(0, formData.subjects.length)],
+      ["Bin 2", ...bin.slice(formData.subjects.length, formData.subjects.length * 2)],
+      ["Bin 3", ...bin.slice(formData.subjects.length * 2, formData.subjects.length * 3)],
+      ["Post Injection/Phase 2"],
+      ["Bin 4", ...bin.slice(formData.subjects.length * 3, formData.subjects.length * 4)],
+      ["Bin 5", ...bin.slice(formData.subjects.length * 4, formData.subjects.length * 5)],
+      ["Bin 6", ...bin.slice(formData.subjects.length * 5, formData.subjects.length * 6)],
+      ["Up to number of bins", ...Array(formData.subjects.length * 6).fill("")], // Adjust if you have more bins
+    ];
 
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "export.csv");
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
   return (
     <div className="container1">
       <div className="video-container">
@@ -232,7 +258,7 @@ useEffect(()=>{
         </div>
         <div className="block">
           <p>Phase we are in: {phase[currentSubject - 1]}</p>
-          <p>Date: {(new Date()).toLocaleString()}</p>
+          <p>Date: {(new Date()).toDateString()}</p>
           <p>Group: {(formData?.subjects && formData?.subjects[currentSubject - 1]?.dropdownSelection) || ""}</p>
           <p>Condition: <input type="text" /></p>
         </div>
@@ -243,6 +269,9 @@ useEffect(()=>{
         </button>
         <button onClick={handleStop} disabled={!running}>
           Pause
+        </button>
+        <button onClick={exportToCSV}>
+          Export to CSV
         </button>
       </div>
     </div>
