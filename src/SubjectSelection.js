@@ -5,10 +5,10 @@ import "./SubjectSelection.css";
 function SubjectSelection() {
   const location = useLocation();
   const formData = location.state;
-  const [bin, setBin] = useState(1);
+  const [bin, setBin] = useState([]);
   const [seconds, setSeconds] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
-const [minutes, setMinutes] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
-const [hours, setHours] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
+  const [minutes, setMinutes] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
+  const [hours, setHours] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState([]);
   const [currentSubject, setCurrentSubject] = useState(1);
@@ -30,13 +30,29 @@ useEffect(()=>{
       return b;
     });
   })
+  setSeconds((t)=>{
+    return t.map((b, index) => {
+      if (index === 0) {
+        return 0;
+      }
+      return b;
+    });
+  })
+  if ((formData?.subjects?.length || 0) > bin.length) {
+    setBin((prevBin) => [...prevBin, ...Array((formData?.subjects?.length || 0) - prevBin.length).fill(1)]);
+  }
+  if ((formData?.subjects?.length || 0) > phase.length) {
+    setPhase((prevPhase) => [...prevPhase, ...Array((formData?.subjects?.length || 0) - prevPhase.length).fill(1)]);
+  }
 
+  if ((formData?.subjects?.length || 0) > frequency.length) {
+    setFrequency([...frequency, ...Array((formData?.subjects?.length || 0) - frequency.length).fill(0)]);
+  }
 },[]);
 
 
 
   useEffect(() => {
-    handleBin();
     let interval;
     // console.log({seconds})
     const startTimer = () => {
@@ -93,7 +109,7 @@ useEffect(()=>{
     return () => {
       stopTimer();
     };
-  }, [running, hours[currentSubject-1], minutes[currentSubject-1], seconds[currentSubject-1], currentSubject]);
+  }, [running, hours, minutes, seconds, currentSubject]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -110,19 +126,9 @@ useEffect(()=>{
               return newStarted;
             });
 
-            // Reset the timer to 0 when opening the subject for the first time
-            // setHours(0);
-            // setMinutes(0);
-            // setSeconds(0);
+
           }
 
-          // if (!subjectTimers[key - 1]) {
-          //   setSubjectTimers((prevTimers) => {
-          //     const newTimers = [...prevTimers];
-          //     newTimers[key - 1] = new Date().getTime();
-          //     return newTimers;
-          //   });
-          // }
         }
       } else if (e.key === 'f' && !e.repeat) {
         setFrequency((prevFrequency) => {
@@ -142,19 +148,10 @@ useEffect(()=>{
 
   useEffect(() => {
     handleBin();
-  }, [hours, minutes, seconds, bin, formData?.binSize, formData?.subjects?.length, phase]);
+  }, [hours, minutes, seconds]);
 
   const handleStart = () => {
     setRunning(true);
-
-    // Start the timer for the selected subject if not started
-    // if (!subjectTimers[currentSubject - 1]) {
-    //   setSubjectTimers((prevTimers) => {
-    //     const newTimers = [...prevTimers];
-    //     newTimers[currentSubject - 1] = new Date().getTime();
-    //     return newTimers;
-    //   });
-    // }
 
     if (videoRef.current) {
       videoRef.current.play().catch((error) => {
@@ -181,32 +178,30 @@ useEffect(()=>{
     var a = hms.split(':');
 
     var s = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
+
+
     if (s % (formData?.binSize || 1) === 0 && s !== 0) {
-      setBin((s / (formData?.binSize || 1)) + 1);
+        setBin((prevBins) => {
+        const updatedBins = [...prevBins];
+        updatedBins[sub] = updatedBins[sub] + 1;
+        return updatedBins;
+      });
     }
-
-    if ((formData?.subjects?.length || 0) > phase.length) {
-      setPhase((prevPhase) => [...prevPhase, ...Array((formData?.subjects?.length || 0) - prevPhase.length).fill(1)]);
-    }
-
-    if ((formData?.subjects?.length || 0) > frequency.length) {
-      setFrequency([...frequency, ...Array((formData?.subjects?.length || 0) - frequency.length).fill(0)]);
-    }
-
-    for (let i = 0; i < (formData?.subjects?.length || 0); i++) {
-      const p = parseInt(formData?.subjects[i]?.phaseOneMinutes || 0) * 60 + parseInt(formData?.subjects[i]?.phaseOneSeconds || 0);
+    
+    // for (let i = 0; i < (formData?.subjects?.length || 0); i++) {
+      const p = parseInt(formData?.subjects[sub]?.phaseOneMinutes || 0) * 60 + parseInt(formData?.subjects[sub]?.phaseOneSeconds || 0);
       if (p === s) {
         setPhase((prevPhase) => {
           const updatedPhase = [...prevPhase];
-          if (updatedPhase.length <= i) {
+          if (updatedPhase.length <= sub) {
             updatedPhase.push(2);
           } else {
-            updatedPhase[i] = 2;
+            updatedPhase[sub] = 2;
           }
           return updatedPhase;
         });
       }
-    }
+    // }
   }
     // return bin;
 
@@ -229,7 +224,7 @@ useEffect(()=>{
       <div className="blocks-container">
         <div className="block">
           <p>Subject we are in: {currentSubject}</p>
-          <p>Bin: {bin}</p>
+          <p>Bin: {bin[currentSubject-1]}</p>
           <p>{`${hours[currentSubject-1].toString().padStart(2, "0")}:${minutes[currentSubject-1].toString().padStart(2, "0")}:${seconds[currentSubject-1].toString().padStart(2, "0")}`}</p>
         </div>
         <div className="block">
@@ -255,4 +250,3 @@ useEffect(()=>{
 }
 
 export default SubjectSelection;
-
