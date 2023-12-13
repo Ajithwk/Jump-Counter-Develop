@@ -2,42 +2,81 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import "./SubjectSelection.css";
 
-function SubjectSelection(props) {
+function SubjectSelection() {
   const location = useLocation();
+  const formData = location.state;
   const [bin, setBin] = useState(1);
-  const [seconds, setSeconds] = useState(0);
-  const [minutes, setMinutes] = useState(0);
-  const [hours, setHours] = useState(0);
+  const [seconds, setSeconds] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
+const [minutes, setMinutes] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
+const [hours, setHours] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => 0));
   const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState([]);
   const [currentSubject, setCurrentSubject] = useState(1);
+  const [subjectTimers, setSubjectTimers] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => null));
   const videoRef = useRef(null);
   const [frequency, setFrequency] = useState([]);
-  const formData = location.state;
-  const video = formData?.uploadedVideo; // Use optional chaining to prevent errors if formData is undefined
+  const video = formData?.uploadedVideo;
   const videoURL = video ? URL.createObjectURL(video) : null;
+
+  // State to track whether the timer has been started for each subject
+  const [subjectTimerStarted, setSubjectTimerStarted] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => false));
+
+useEffect(()=>{
+  setSubjectTimerStarted((t)=>{
+    return t.map((b, index) => {
+      if (index === 0) {
+        return true;
+      }
+      return b;
+    });
+  })
+
+},[]);
 
 
 
   useEffect(() => {
     handleBin();
     let interval;
-
+    // console.log({seconds})
     const startTimer = () => {
       interval = setInterval(() => {
+        for(let sub in formData.subjects){
+          if(subjectTimerStarted[sub]){
+            console.log(subjectTimerStarted[sub])
         setSeconds((prevSeconds) => {
-          if (prevSeconds === 59) {
+          if (prevSeconds[sub] == 59) {
             setMinutes((prevMinutes) => {
-              if (prevMinutes === 59) {
-                setHours((prevHours) => prevHours + 1);
-                return 0;
+              if (prevMinutes[sub] == 59) {
+                setHours((prevHours) => {
+                  const newHours = [...prevHours];
+                  newHours[sub] = newHours[sub] + 1;
+                  return newHours;
+                });
+                prevMinutes[sub] = 0;
+                return [...prevMinutes];
               }
-              return prevMinutes + 1;
+              return prevMinutes.map((prevMinute, index) => {
+                if (index == sub) {
+                  return prevMinute + 1;
+                }
+                return prevMinute;
+              });
             });
-            return 0;
+            prevSeconds[sub] = 0;
+            return [...prevSeconds];
           }
-          return prevSeconds + 1;
+          return prevSeconds.map((prevSecond, index) => {
+            if (index == sub) {
+              return prevSecond + 1;
+            }
+            return prevSecond;
+          });
         });
+
+          
+        }
+      }
       }, 1000);
     };
 
@@ -54,13 +93,36 @@ function SubjectSelection(props) {
     return () => {
       stopTimer();
     };
-  }, [running, hours, minutes, seconds]);
+  }, [running, hours[currentSubject-1], minutes[currentSubject-1], seconds[currentSubject-1], currentSubject]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isNaN(e.key)) {
-        if (parseInt(e.key) <= formData?.subjects?.length) {
-          setCurrentSubject(parseInt(e.key));
+        const key = parseInt(e.key);
+        if (key <= (formData?.subjects?.length || 0)) {
+          setCurrentSubject(key);
+
+          // Start the timer for the selected subject if not started
+          if (!subjectTimerStarted[key - 1]) {
+            setSubjectTimerStarted((prevStarted) => {
+              const newStarted = [...prevStarted];
+              newStarted[key - 1] = true;
+              return newStarted;
+            });
+
+            // Reset the timer to 0 when opening the subject for the first time
+            // setHours(0);
+            // setMinutes(0);
+            // setSeconds(0);
+          }
+
+          // if (!subjectTimers[key - 1]) {
+          //   setSubjectTimers((prevTimers) => {
+          //     const newTimers = [...prevTimers];
+          //     newTimers[key - 1] = new Date().getTime();
+          //     return newTimers;
+          //   });
+          // }
         }
       } else if (e.key === 'f' && !e.repeat) {
         setFrequency((prevFrequency) => {
@@ -76,7 +138,7 @@ function SubjectSelection(props) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentSubject, formData?.subjects?.length]);
+  }, [currentSubject, formData?.subjects?.length, subjectTimers, subjectTimerStarted]);
 
   useEffect(() => {
     handleBin();
@@ -84,6 +146,16 @@ function SubjectSelection(props) {
 
   const handleStart = () => {
     setRunning(true);
+
+    // Start the timer for the selected subject if not started
+    // if (!subjectTimers[currentSubject - 1]) {
+    //   setSubjectTimers((prevTimers) => {
+    //     const newTimers = [...prevTimers];
+    //     newTimers[currentSubject - 1] = new Date().getTime();
+    //     return newTimers;
+    //   });
+    // }
+
     if (videoRef.current) {
       videoRef.current.play().catch((error) => {
         console.error("Error playing video:", error);
@@ -101,42 +173,45 @@ function SubjectSelection(props) {
   const handleVideoEnd = () => {
     setRunning(false);
   };
-  const handleBin = () =>{
-      var hms =hours.toString().padStart(2, "0")+":"+minutes.toString().padStart(2, "0")+":"+seconds.toString().padStart(2, "0");   // your input string
-      var a = hms.split(':'); // split it at the colons
-  
-      var s = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]); 
-        if((s%formData.binSize)==0 && s!=0){ 
-  
-          setBin((s/formData.binSize)+1)
-  
-        }
-        if(formData.subjects.length>phase.length){
-          setPhase((prevPhase) => [...prevPhase, ...Array(formData.subjects.length - prevPhase.length).fill(1)]);
-        }
-        if(formData.subjects.length>frequency.length){
-          setFrequency([...frequency,[0]*(formData.subjects.length-frequency.length)])
-         
-        }
-       
-        for(let i in formData.subjects){
-          const p = parseInt(formData.subjects[i].phaseOneMinutes)*60+ parseInt(formData.subjects[i].phaseOneSeconds)
-          if( p==s){
-            let tem = phase;
-            console.log({tem})
-            if(tem.length<=i){
-              tem.push(2)
-            }else{
-              tem[i]=2
-            }
-            setPhase(tem)
+
+  const handleBin = () => {
+    // console.log(hours[currentSubject-1],minutes[currentSubject-1],seconds[currentSubject-1])
+    for(let sub in formData.subjects){
+    var hms = `${hours[sub].toString().padStart(2, "0")}:${minutes[sub].toString().padStart(2, "0")}:${seconds[sub].toString().padStart(2, "0")}`;
+    var a = hms.split(':');
+
+    var s = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
+    if (s % (formData?.binSize || 1) === 0 && s !== 0) {
+      setBin((s / (formData?.binSize || 1)) + 1);
+    }
+
+    if ((formData?.subjects?.length || 0) > phase.length) {
+      setPhase((prevPhase) => [...prevPhase, ...Array((formData?.subjects?.length || 0) - prevPhase.length).fill(1)]);
+    }
+
+    if ((formData?.subjects?.length || 0) > frequency.length) {
+      setFrequency([...frequency, ...Array((formData?.subjects?.length || 0) - frequency.length).fill(0)]);
+    }
+
+    for (let i = 0; i < (formData?.subjects?.length || 0); i++) {
+      const p = parseInt(formData?.subjects[i]?.phaseOneMinutes || 0) * 60 + parseInt(formData?.subjects[i]?.phaseOneSeconds || 0);
+      if (p === s) {
+        setPhase((prevPhase) => {
+          const updatedPhase = [...prevPhase];
+          if (updatedPhase.length <= i) {
+            updatedPhase.push(2);
+          } else {
+            updatedPhase[i] = 2;
           }
-          
-        }
-  
-      return bin
+          return updatedPhase;
+        });
+      }
+    }
   }
-  
+    // return bin;
+
+  };
+
   return (
     <div className="container1">
       <div className="video-container">
@@ -144,7 +219,7 @@ function SubjectSelection(props) {
           ref={videoRef}
           width="100%"
           height="100%"
-          controls={false}
+          controls={true}
           onEnded={handleVideoEnd}
         >
           <source src={videoURL} type="video/mp4" />
@@ -155,15 +230,15 @@ function SubjectSelection(props) {
         <div className="block">
           <p>Subject we are in: {currentSubject}</p>
           <p>Bin: {bin}</p>
-          <p>{`${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`}</p>
+          <p>{`${hours[currentSubject-1].toString().padStart(2, "0")}:${minutes[currentSubject-1].toString().padStart(2, "0")}:${seconds[currentSubject-1].toString().padStart(2, "0")}`}</p>
         </div>
         <div className="block">
           <p className="frequency-block">Frequency: {frequency[currentSubject - 1]}</p>
         </div>
         <div className="block">
-          <p>Phase we are in: {phase[currentSubject-1]}</p>
+          <p>Phase we are in: {phase[currentSubject - 1]}</p>
           <p>Date: {(new Date()).toLocaleString()}</p>
-          <p>Group: {formData.subjects[currentSubject - 1].dropdownSelection}</p>
+          <p>Group: {(formData?.subjects && formData?.subjects[currentSubject - 1]?.dropdownSelection) || ""}</p>
           <p>Condition: <input type="text" /></p>
         </div>
       </div>
@@ -180,3 +255,4 @@ function SubjectSelection(props) {
 }
 
 export default SubjectSelection;
+
