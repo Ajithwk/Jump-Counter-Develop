@@ -40,12 +40,9 @@ const InitialForm = ()=> {
     };
 
     const handleNext = () => {
-       
-        // Navigate to the subject selection page
-        // onFormDataChange({ numberOfSubjects: numberOfSubjects });
-        // History.pushState(formData,'/select-subject');
+
         navigate('/select-subject',{state:formData})
-        // return  <SubjectSelection formData={formData}/>
+
     };
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -58,25 +55,7 @@ const InitialForm = ()=> {
                     subjects: newSubjects,
                 };
             });
-        // } else if (name === "numberOfBins") {
-        //     const newNumberOfBins = value;
-        //     setNumberOfBins(newNumberOfBins);
-        //     // Now we update the formData state with the new number of bins
-        //     setFormData(prevFormData => {
-        //         const newBinSize = calculateBinSize(prevFormData.subjects, newNumberOfBins);
-        //         return {
-        //             ...prevFormData,
-        //             numberOfBins: newNumberOfBins,
-        //         };
-        //     });
-        // } else {
-        //     setFormData(prevFormData => ({
-        //         ...prevFormData,
-        //         [name]: value,
-        //     }));
-        // }
-        // let {name,value} = e.target;
-    //    setNumberOfSubjects(value)
+
     };
     const handleSubjectChange = (e, index) => {
         const { name, value } = e.target;
@@ -95,7 +74,6 @@ const InitialForm = ()=> {
                 binDurationSeconds: binSize % 60,
             };
         });
-        // calculateBinSize();
     };
     const calculateBinSize = () => {
         let totalSecondsArray = formData.subjects.map((subject) => {
@@ -184,10 +162,16 @@ const InitialForm = ()=> {
         </div>
 
         {formData.subjects.map((subject, index) => (
-            <div key={index} className="form-group">
+            <div key={index} >
                 <label>Subject {index + 1}</label>
                 <label>
                     Phase 1:</label>
+                     <label>Subject ID:</label>
+                    <input type="text"  
+                        name={`subjectID`}
+                        value={subject.subjectID}
+                        onChange={(e) => handleSubjectChange(e, index)}/> 
+                <div className="form-group">
                     <label>Minutes:</label>
                     <input
                         type="number"
@@ -238,7 +222,7 @@ const InitialForm = ()=> {
                         <option value="G">G</option>
                         <option value="H">H</option>
                     </select>
-                
+                </div>
             </div>
         ))}
 

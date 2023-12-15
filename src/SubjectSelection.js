@@ -18,7 +18,7 @@ function SubjectSelection() {
   const [frequency, setFrequency] = useState([]);
   const video = formData?.uploadedVideo;
   const videoURL = video ? URL.createObjectURL(video) : null;
-
+  const [binMap,setBinMap] = useState([]);
   // State to track whether the timer has been started for each subject
   const [subjectTimerStarted, setSubjectTimerStarted] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => false));
 
@@ -49,6 +49,19 @@ useEffect(()=>{
   if ((formData?.subjects?.length || 0) > frequency.length) {
     setFrequency([...frequency, ...Array((formData?.subjects?.length || 0) - frequency.length).fill(0)]);
   }
+  let binArray = []
+  for(let i in formData.subjects){
+    let t = {
+      subject: parseInt(i)+1,
+      details:[{
+        bin:1,
+        phase:1,
+        frequency:[]
+      }]
+    }
+    binArray.push(t)
+  }
+  setBinMap(binArray);
 },[]);
 
 
@@ -115,7 +128,7 @@ useEffect(()=>{
         const key = parseInt(e.key);
         if (key <= (formData?.subjects?.length || 0)) {
           setCurrentSubject(key);
-
+    
           // Start the timer for the selected subject if not started
           if (!subjectTimerStarted[key - 1]) {
             setSubjectTimerStarted((prevStarted) => {
@@ -123,16 +136,36 @@ useEffect(()=>{
               newStarted[key - 1] = true;
               return newStarted;
             });
-
-
           }
-
         }
       } else if (e.key === 'f' && !e.repeat) {
         setFrequency((prevFrequency) => {
           const updatedFrequency = [...prevFrequency];
           updatedFrequency[currentSubject - 1] = (updatedFrequency[currentSubject - 1] || 0) + 1;
           return updatedFrequency;
+        });
+    console.log(frequency[currentSubject-1])
+        // Update the frequency in binMap as well
+        setBinMap((subjects) => {
+          return subjects.map((subject, index) => {
+            if (index === currentSubject - 1) {
+              let found = subject.details.find((obj) => obj.bin === bin[currentSubject - 1]);
+    
+              if (!found) {
+                // If the bin is not found, add a new details object
+                subject.details.push({
+                  bin: bin[currentSubject - 1],
+                  phase: phase[currentSubject - 1],
+                  frequency: [frequency[currentSubject - 1]],
+                });
+              } else {
+                // If the bin is found, update the frequency using concat to avoid modifying the original array
+                found.frequency.push(frequency[currentSubject - 1]);
+              }
+            }
+    
+            return subject; // Return a new object to trigger a state update
+          });
         });
       }
     };
@@ -146,7 +179,7 @@ useEffect(()=>{
 
   useEffect(() => {
     handleBin();
-  }, [hours, minutes, seconds]);
+  }, [hours, minutes, seconds,frequency]);
 
   const handleStart = () => {
     setRunning(true);
@@ -170,6 +203,7 @@ useEffect(()=>{
   };
 
   const handleBin = () => {
+    console.log({binMap})
     // console.log(hours[currentSubject-1],minutes[currentSubject-1],seconds[currentSubject-1])
     for(let sub in formData.subjects){
     var hms = `${hours[sub].toString().padStart(2, "0")}:${minutes[sub].toString().padStart(2, "0")}:${seconds[sub].toString().padStart(2, "0")}`;
@@ -184,6 +218,28 @@ useEffect(()=>{
         updatedBins[sub] = updatedBins[sub] + 1;
         return updatedBins;
       });
+      setBinMap((subjects) => {
+        return subjects.map((subject, index) => {
+          if (index == sub) {
+            let found = subject.details.find((obj) => obj.bin === bin[sub]);
+      
+            if (!found) {
+              // If the bin is not found, add a new details object
+              subject.details.push({
+                bin: bin[sub],
+                phase: phase[sub],
+                frequency: [],
+              });
+            } else {
+              // If the bin is found, update the phase
+              found.phase = phase[sub];
+            }
+          }
+      
+          return subject;
+        });
+      });
+      
     }
     
     // for (let i = 0; i < (formData?.subjects?.length || 0); i++) {
@@ -198,6 +254,28 @@ useEffect(()=>{
           }
           return updatedPhase;
         });
+        setBinMap((subjects) => {
+          return subjects.map((subject, index) => {
+            if (index == sub) {
+              let existingDetailIndex = subject.details.findIndex((obj) => obj.bin === bin[sub]);
+        
+              if (existingDetailIndex === -1) {
+                // If the bin is not found, add a new details object
+                subject.details.push({
+                  bin: bin[sub],
+                  phase: 2,
+                  frequency: [],
+                });
+              } else {
+                // If the bin is found, update the phase
+                subject.details[existingDetailIndex].phase = 2;
+              }
+            }
+        
+            return { ...subject }; // Return a new object to trigger a state update
+          });
+        });
+        
       }
     // }
   }
@@ -206,22 +284,42 @@ useEffect(()=>{
   };
   
   const exportToCSV = () => {
-    const csvData = [
-      ["", ...formData.subjects.map((_, index) => `Subject ${index + 1}`)],
+    const numSubjects = formData?.subjects?.length || 0;
+  
+    // Create the header row
+    const headerRow = ["", ...Array.from({ length: numSubjects }, (_, index) => `Subject ${index + 1}`)];
+  
+    // Create the data rows
+    const dataRows = [
       ["Preinjection/Phase 1"],
-      ["Bin 1", ...bin.slice(0, formData.subjects.length)],
-      ["Bin 2", ...bin.slice(formData.subjects.length, formData.subjects.length * 2)],
-      ["Bin 3", ...bin.slice(formData.subjects.length * 2, formData.subjects.length * 3)],
+      ...Array.from({ length: formData?.binSize || 0 }, (_, binIndex) => {
+        const binRow = [
+          `Bin ${binIndex + 1}`,
+          ...Array.from({ length: numSubjects }, (subjectIndex) => {
+            const subjectDetails = binMap[subjectIndex]?.details.find((detail) => detail.bin === binIndex + 1);
+            return subjectDetails ? subjectDetails.frequency.length : 0;
+          }),
+        ];
+        return binRow;
+      }),
+      ["Up to number of bins"],
       ["Post Injection/Phase 2"],
-      ["Bin 4", ...bin.slice(formData.subjects.length * 3, formData.subjects.length * 4)],
-      ["Bin 5", ...bin.slice(formData.subjects.length * 4, formData.subjects.length * 5)],
-      ["Bin 6", ...bin.slice(formData.subjects.length * 5, formData.subjects.length * 6)],
-      ["Up to number of bins", ...Array(formData.subjects.length * 6).fill("")], // Adjust if you have more bins
+      ...Array.from({ length: formData?.binSize || 0 }, (_, binIndex) => {
+        const binRow = [
+          `Bin ${binIndex + 1 + numSubjects * (formData?.binSize || 0)}`,
+          // ... (similar logic as above for counting events in each bin for each subject)
+        ];
+        return binRow;
+      }),
+      ["Up to number of bins"],
     ];
-
+  
+    // Combine the header row and data rows
+    const csvData = [headerRow, ...dataRows];
+  
     const csv = Papa.unparse(csvData);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-
+  
     const link = document.createElement("a");
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
@@ -233,6 +331,7 @@ useEffect(()=>{
       document.body.removeChild(link);
     }
   };
+  
   return (
     <div className="container1">
       <div className="video-container">
@@ -249,7 +348,7 @@ useEffect(()=>{
       </div>
       <div className="blocks-container">
         <div className="block">
-          <p>Subject we are in: {currentSubject}</p>
+          <p>Subject we are in: {formData?.subjects[currentSubject-1].subjectID}</p>
           <p>Bin: {bin[currentSubject-1]}</p>
           <p>{`${hours[currentSubject-1].toString().padStart(2, "0")}:${minutes[currentSubject-1].toString().padStart(2, "0")}:${seconds[currentSubject-1].toString().padStart(2, "0")}`}</p>
         </div>

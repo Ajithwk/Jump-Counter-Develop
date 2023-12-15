@@ -9,10 +9,11 @@
   
   
   .form-group {
-    display: flex;
-    flex-direction: row;
+    display: flex; 
+ flex-direction: row;
     align-items: center;
     margin-bottom: 20px;
+    margin-top: 20px;
   }
   
   label {
