@@ -56,7 +56,7 @@ useEffect(()=>{
       details:[{
         bin:1,
         phase:1,
-        frequency:[]
+        frequency:0
       }]
     }
     binArray.push(t)
@@ -79,7 +79,7 @@ const handleFrequencyChange = async () => {
               {
                 bin: bin[currentSubject - 1],
                 phase: phase[currentSubject - 1],
-                frequency: [frequency[currentSubject - 1]],
+                frequency: frequency[currentSubject - 1],
               },
             ],
           };
@@ -91,9 +91,7 @@ const handleFrequencyChange = async () => {
               detail.bin == bin[currentSubject - 1]
                 ? {
                     ...detail,
-                    frequency: detail.frequency.map((freq, freqIndex) =>
-                      freqIndex == currentSubject - 1 ? frequency[currentSubject - 1] : freq
-                    ),
+                    frequency: detail.frequency+1
                   }
                 : detail
             ),
@@ -254,7 +252,7 @@ useEffect(() => {
               subject.details.push({
                 bin: bin[sub],
                 phase: phase[sub],
-                frequency: [],
+                frequency: 0,
               });
             } else {
               // If the bin is found, update the phase
@@ -290,7 +288,7 @@ useEffect(() => {
                 subject.details.push({
                   bin: bin[sub],
                   phase: 2,
-                  frequency: [],
+                  frequency: 0,
                 });
               } else {
                 // If the bin is found, update the phase
@@ -309,35 +307,69 @@ useEffect(() => {
 
   };
   
-  const exportToCSV = (freq,map) => {
+  const exportToCSV = () => {
+
     const numSubjects = formData?.subjects?.length || 0;
     const headerRow = ["", ...Array.from({ length: numSubjects }, (_, index) => `Subject ${index + 1}`)];
     let phase1rows = [];
     let phase2rows = [];
-    console.log({map,freq,binMap})
+      for(let i in formData.subjects){
+        let p =[]
+        let fil = binMap[i].details.filter((e)=>e.phase==1);
+        let fil2 = binMap[i].details.filter((e)=>e.phase==2);
+        // console.log({fil})
+        if(fil.length){
+          for(let temp of fil){
+            if(temp.bin in phase1rows)continue;
+            let tem = []
+            for(let s in formData.subjects){
+              let f = binMap[s].details.find(e=>e.bin==temp.bin&&e.phase==1)
+              if(f)
+              tem.push(f.frequency)
+            else tem.push(0)
+            }
+            phase1rows.push([temp.bin,...tem])
+          }
+          // console.log({fil})
+        }
+        if(fil2.length){
+          for(let temp of fil2){
+            if(temp.bin in phase2rows)continue;
+            let tem = []
+            for(let s in formData.subjects){
+              let f = binMap[s].details.find(e=>e.bin==temp.bin&&e.phase==2)
+              if(f)
+              tem.push(f.frequency)
+              else tem.push(0)
+            }
+            phase2rows.push([temp.bin,...tem])
+          }
+          // console.log({fil})
+        }
+      }
     const dataRows = [
       ["Preinjection/Phase 1"],
-      [...phase1rows],
+      ...phase1rows,
       ["Up to number of bins"],
       ["Post Injection/Phase 2"],
-      [...phase2rows],
+      ...phase2rows,
       ["Up to number of bins"],
     ];
-  // console.log({dataRows,binMap})
-    // const csvData = [headerRow, ...dataRows];
-    // const csv = Papa.unparse(csvData);
-    // const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  console.log({dataRows,binMap})
+    const csvData = [headerRow, ...dataRows];
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   
-    // const link = document.createElement("a");
-    // if (link.download !== undefined) {
-    //   const url = URL.createObjectURL(blob);
-    //   link.setAttribute("href", url);
-    //   link.setAttribute("download", "export.csv");
-    //   link.style.visibility = "hidden";
-    //   document.body.appendChild(link);
-    //   link.click();
-    //   document.body.removeChild(link);
-    // }
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "export.csv");
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
   
   return (
