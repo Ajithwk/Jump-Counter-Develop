@@ -46,9 +46,9 @@ useEffect(()=>{
     setPhase((prevPhase) => [...prevPhase, ...Array((formData?.subjects?.length || 0) - prevPhase.length).fill(1)]);
   }
 
-  if ((formData?.subjects?.length || 0) > frequency.length) {
-    setFrequency([...frequency, ...Array((formData?.subjects?.length || 0) - frequency.length).fill(0)]);
-  }
+  // if ((formData?.subjects?.length || 0) > frequency.length) {
+  //   setFrequency([...frequency, ...Array((formData?.subjects?.length || 0) - frequency.length).fill(0)]);
+  // }
   let binArray = []
   for(let i in formData.subjects){
     let t = {
@@ -64,7 +64,54 @@ useEffect(()=>{
   setBinMap(binArray);
 },[]);
 
+const handleFrequencyChange = async () => {
+  await setBinMap((subjects) => {
+    return subjects.map((subject, index) => {
+      if (index == currentSubject - 1) {
+        let found = subject.details.find((obj) => obj.bin == bin[currentSubject - 1]);
+        console.log('found', { found });
+        if (!found) {
+          // If the bin is not found, add a new details object
+          return {
+            ...subject,
+            details: [
+              ...subject.details,
+              {
+                bin: bin[currentSubject - 1],
+                phase: phase[currentSubject - 1],
+                frequency: [frequency[currentSubject - 1]],
+              },
+            ],
+          };
+        } else {
+          // If the bin is found, update the frequency using map to correctly update the state
+          return {
+            ...subject,
+            details: subject.details.map((detail) =>
+              detail.bin == bin[currentSubject - 1]
+                ? {
+                    ...detail,
+                    frequency: detail.frequency.map((freq, freqIndex) =>
+                      freqIndex == currentSubject - 1 ? frequency[currentSubject - 1] : freq
+                    ),
+                  }
+                : detail
+            ),
+          };
+        }
+      }
 
+      return subject; // Return a new object to trigger a state update
+    });
+  });
+
+  console.log({ frequency, binMap });
+};
+
+
+useEffect(() => {
+  handleFrequencyChange();
+}, [frequency]);
 
   useEffect(() => {
     let interval;
@@ -144,29 +191,8 @@ useEffect(()=>{
           updatedFrequency[currentSubject - 1] = (updatedFrequency[currentSubject - 1] || 0) + 1;
           return updatedFrequency;
         });
-    console.log(frequency[currentSubject-1])
         // Update the frequency in binMap as well
-        setBinMap((subjects) => {
-          return subjects.map((subject, index) => {
-            if (index === currentSubject - 1) {
-              let found = subject.details.find((obj) => obj.bin === bin[currentSubject - 1]);
-    
-              if (!found) {
-                // If the bin is not found, add a new details object
-                subject.details.push({
-                  bin: bin[currentSubject - 1],
-                  phase: phase[currentSubject - 1],
-                  frequency: [frequency[currentSubject - 1]],
-                });
-              } else {
-                // If the bin is found, update the frequency using concat to avoid modifying the original array
-                found.frequency.push(frequency[currentSubject - 1]);
-              }
-            }
-    
-            return subject; // Return a new object to trigger a state update
-          });
-        });
+
       }
     };
 
@@ -179,7 +205,7 @@ useEffect(()=>{
 
   useEffect(() => {
     handleBin();
-  }, [hours, minutes, seconds,frequency]);
+  }, [hours, minutes, seconds]);
 
   const handleStart = () => {
     setRunning(true);
@@ -203,7 +229,7 @@ useEffect(()=>{
   };
 
   const handleBin = () => {
-    console.log({binMap})
+    // console.log({binMap})
     // console.log(hours[currentSubject-1],minutes[currentSubject-1],seconds[currentSubject-1])
     for(let sub in formData.subjects){
     var hms = `${hours[sub].toString().padStart(2, "0")}:${minutes[sub].toString().padStart(2, "0")}:${seconds[sub].toString().padStart(2, "0")}`;
@@ -283,53 +309,35 @@ useEffect(()=>{
 
   };
   
-  const exportToCSV = () => {
+  const exportToCSV = (freq,map) => {
     const numSubjects = formData?.subjects?.length || 0;
-  
-    // Create the header row
     const headerRow = ["", ...Array.from({ length: numSubjects }, (_, index) => `Subject ${index + 1}`)];
-  
-    // Create the data rows
+    let phase1rows = [];
+    let phase2rows = [];
+    console.log({map,freq,binMap})
     const dataRows = [
       ["Preinjection/Phase 1"],
-      ...Array.from({ length: formData?.binSize || 0 }, (_, binIndex) => {
-        const binRow = [
-          `Bin ${binIndex + 1}`,
-          ...Array.from({ length: numSubjects }, (subjectIndex) => {
-            const subjectDetails = binMap[subjectIndex]?.details.find((detail) => detail.bin === binIndex + 1);
-            return subjectDetails ? subjectDetails.frequency.length : 0;
-          }),
-        ];
-        return binRow;
-      }),
+      [...phase1rows],
       ["Up to number of bins"],
       ["Post Injection/Phase 2"],
-      ...Array.from({ length: formData?.binSize || 0 }, (_, binIndex) => {
-        const binRow = [
-          `Bin ${binIndex + 1 + numSubjects * (formData?.binSize || 0)}`,
-          // ... (similar logic as above for counting events in each bin for each subject)
-        ];
-        return binRow;
-      }),
+      [...phase2rows],
       ["Up to number of bins"],
     ];
+  // console.log({dataRows,binMap})
+    // const csvData = [headerRow, ...dataRows];
+    // const csv = Papa.unparse(csvData);
+    // const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   
-    // Combine the header row and data rows
-    const csvData = [headerRow, ...dataRows];
-  
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", "export.csv");
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    // const link = document.createElement("a");
+    // if (link.download !== undefined) {
+    //   const url = URL.createObjectURL(blob);
+    //   link.setAttribute("href", url);
+    //   link.setAttribute("download", "export.csv");
+    //   link.style.visibility = "hidden";
+    //   document.body.appendChild(link);
+    //   link.click();
+    //   document.body.removeChild(link);
+    // }
   };
   
   return (
@@ -353,7 +361,7 @@ useEffect(()=>{
           <p>{`${hours[currentSubject-1].toString().padStart(2, "0")}:${minutes[currentSubject-1].toString().padStart(2, "0")}:${seconds[currentSubject-1].toString().padStart(2, "0")}`}</p>
         </div>
         <div className="block">
-          <p className="frequency-block">Frequency: {frequency[currentSubject - 1]}</p>
+          <p className="frequency-block">Frequency: {frequency[currentSubject - 1]||0}</p>
         </div>
         <div className="block">
           <p>Phase we are in: {phase[currentSubject - 1]}</p>
@@ -369,7 +377,7 @@ useEffect(()=>{
         <button onClick={handleStop} disabled={!running}>
           Pause
         </button>
-        <button onClick={exportToCSV}>
+        <button onClick={()=>exportToCSV(frequency,binMap)}>
           Export to CSV
         </button>
       </div>
