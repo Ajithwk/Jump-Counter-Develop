@@ -380,7 +380,27 @@ useEffect(() => {
       document.body.removeChild(link);
     }
   };
+
+    const handleDownload = () => {
+      let csvContent = "Subject ID,Condition Code,Condition,Total number of events,Key used to code this subject\n";
+
+      for(let i in formData.subjects){
+        csvContent += `${formData.subjects[i].subjectID},${formData.subjects[i].dropdownSelection},${(formData.subjects[i].condition)||'-'},${frequency[i]||0},${parseInt(i)+1}\n`;
+      }
+      // formData.subjects.forEach((row,index) => {
+      //   console.log(row)
+      //   csvContent += `${row.subjectId},${row.dropdownSelection},${(row.condition)||'-'},${frequency[index]},${parseInt(index)+1}\n`;
+      // });
   
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download =  'data.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
   return (
     <div className="container1">
       <div className="video-container">
@@ -407,7 +427,7 @@ useEffect(() => {
         <div className="block">
           <p>Phase we are in: {phase[currentSubject - 1]}</p>
           <p>Date: {(new Date()).toDateString()}</p>
-          <p>Group: {(formData?.subjects && formData?.subjects[currentSubject - 1]?.dropdownSelection) || ""}</p>
+          <p>Condition Code: {(formData?.subjects && formData?.subjects[currentSubject - 1]?.dropdownSelection) || ""}</p>
           <p>Condition: <input type="text" /></p>
         </div>
       </div>
@@ -420,6 +440,9 @@ useEffect(() => {
         </button>
         <button onClick={exportToCSV}>
           Export to CSV
+        </button>
+        <button onClick={handleDownload}>
+          Download overall data
         </button>
       </div>
     </div>
