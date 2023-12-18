@@ -67,39 +67,23 @@ useEffect(()=>{
 const handleFrequencyChange = async () => {
   await setBinMap((subjects) => {
     return subjects.map((subject, index) => {
-      if (index == currentSubject - 1) {
-        let found = subject.details.find((obj) => obj.bin == bin[currentSubject - 1]);
-        console.log('found', { found });
+      if (index === currentSubject - 1) {
+        let found = subject.details.find((obj) => obj.bin === bin[index]);
+
         if (!found) {
           // If the bin is not found, add a new details object
-          return {
-            ...subject,
-            details: [
-              ...subject.details,
-              {
-                bin: bin[currentSubject - 1],
-                phase: phase[currentSubject - 1],
-                frequency: frequency[currentSubject - 1],
-              },
-            ],
-          };
+          subject.details.push({
+            bin: bin[index],
+            phase: phase[index],
+            frequency: 1, // Start frequency from 1
+          });
         } else {
-          // If the bin is found, update the frequency using map to correctly update the state
-          return {
-            ...subject,
-            details: subject.details.map((detail) =>
-              detail.bin == bin[currentSubject - 1]
-                ? {
-                    ...detail,
-                    frequency: detail.frequency+1
-                  }
-                : detail
-            ),
-          };
+          found.frequency = (found.frequency || 0) + 1;
+          // console.log('sub',index,'bin',bin[index],'found',found.frequency)
         }
       }
 
-      return subject; // Return a new object to trigger a state update
+      return { ...subject }; // Return a new object to trigger a state update
     });
   });
 
@@ -226,7 +210,7 @@ useEffect(() => {
     setRunning(false);
   };
 
-  const handleBin = () => {
+  const handleBin = async () => {
     // console.log({binMap})
     // console.log(hours[currentSubject-1],minutes[currentSubject-1],seconds[currentSubject-1])
     for(let sub in formData.subjects){
@@ -237,7 +221,7 @@ useEffect(() => {
 
 
     if (s % (formData?.binSize || 1) === 0 && s !== 0) {
-        setBin((prevBins) => {
+       await setBin((prevBins) => {
         const updatedBins = [...prevBins];
         updatedBins[sub] = updatedBins[sub] + 1;
         return updatedBins;
@@ -246,13 +230,13 @@ useEffect(() => {
         return subjects.map((subject, index) => {
           if (index == sub) {
             let found = subject.details.find((obj) => obj.bin === bin[sub]);
-      
+
             if (!found) {
               // If the bin is not found, add a new details object
               subject.details.push({
-                bin: bin[sub],
+                bin: bin[index],
                 phase: phase[sub],
-                frequency: 0,
+                frequency:0,
               });
             } else {
               // If the bin is found, update the phase
@@ -260,7 +244,7 @@ useEffect(() => {
             }
           }
       
-          return subject;
+          return { ...subject };
         });
       });
       
@@ -282,11 +266,11 @@ useEffect(() => {
           return subjects.map((subject, index) => {
             if (index == sub) {
               let existingDetailIndex = subject.details.findIndex((obj) => obj.bin === bin[sub]);
-        
+
               if (existingDetailIndex === -1) {
                 // If the bin is not found, add a new details object
                 subject.details.push({
-                  bin: bin[sub],
+                  bin: bin[index],
                   phase: 2,
                   frequency: 0,
                 });
@@ -320,13 +304,26 @@ useEffect(() => {
         // console.log({fil})
         if(fil.length){
           for(let temp of fil){
-            if(temp.bin in phase1rows)continue;
+            console.log({temp})
+            if(temp==undefined){
+              temp.bin = Math.max(...binMap[i].details.map(p=>p.bin),0)+1
+              console.log('called')
+            }
+            let flag =0 
+            for(let k of phase1rows){
+              if(k[0]==temp.bin){
+                flag = 1;
+                break
+              }
+            }
+            if(flag) continue;
+            
             let tem = []
             for(let s in formData.subjects){
               let f = binMap[s].details.find(e=>e.bin==temp.bin&&e.phase==1)
               if(f)
-              tem.push(f.frequency)
-            else tem.push(0)
+              tem.push(f.frequency/2)
+            else tem.push('-')
             }
             phase1rows.push([temp.bin,...tem])
           }
@@ -334,13 +331,25 @@ useEffect(() => {
         }
         if(fil2.length){
           for(let temp of fil2){
-            if(temp.bin in phase2rows)continue;
+            console.log({temp})
+            if(temp==undefined){
+              temp.bin = Math.max(...binMap[i].details.map(p=>p.bin),0)+1
+              console.log('called2')
+            }
+            let flag =0 
+            for(let k of phase2rows){
+              if(k[0]==temp.bin){
+                flag = 1;
+                break
+              }
+            }
+            if(flag) continue;
             let tem = []
             for(let s in formData.subjects){
               let f = binMap[s].details.find(e=>e.bin==temp.bin&&e.phase==2)
               if(f)
-              tem.push(f.frequency)
-              else tem.push(0)
+              tem.push(f.frequency/2)
+              else tem.push('-')
             }
             phase2rows.push([temp.bin,...tem])
           }
@@ -409,7 +418,7 @@ useEffect(() => {
         <button onClick={handleStop} disabled={!running}>
           Pause
         </button>
-        <button onClick={()=>exportToCSV(frequency,binMap)}>
+        <button onClick={exportToCSV}>
           Export to CSV
         </button>
       </div>
