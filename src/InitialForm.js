@@ -107,9 +107,10 @@ const InitialForm = ()=> {
     // Only include the inputs for the first part of the form here
     return (
         <div >
-        <h1 style={{ textAlign: 'center' }}>Jump Counter</h1>
+        <h1 style={{ textAlign: 'center' }} id="Title" >Jump Counter</h1>
     
     <div className='container'>
+
     <div >
        
         <div className="form-group">
@@ -163,15 +164,17 @@ const InitialForm = ()=> {
 
         {formData.subjects.map((subject, index) => (
             <div key={index} >
-                <label>Subject {index + 1}</label>
-                <label>
-                    Phase 1:</label>
-                     <label>Subject ID:</label>
+                <label className='headding'>Subject {index + 1}</label>
+
+                <label >Subject ID:</label>
                     <input type="text"  
                         name={`subjectID`}
                         value={subject.subjectID}
                         onChange={(e) => handleSubjectChange(e, index)}/> 
+                
                 <div className="form-group">
+                <div className="form-group">
+                <label>Phase 1:</label>
                     <label>Minutes:</label>
                     <input
                         type="number"
@@ -186,9 +189,9 @@ const InitialForm = ()=> {
                         value={subject.phaseOneSeconds}
                         onChange={(e) => handleSubjectChange(e, index)}
                     />
-               
-                <label>
-                    Phase 2: </label>
+                    </div>
+                    <div className="form-group">
+                    <label>Phase 2: </label>
                     <label>Minutes:</label>
                     <input
                         type="number"
@@ -203,7 +206,7 @@ const InitialForm = ()=> {
                         value={subject.phaseTwoSeconds}
                         onChange={(e) => handleSubjectChange(e, index)}
                     />
-                
+                    </div>
                 <label>
                     SubjectCode:</label>
                     <select
@@ -231,7 +234,7 @@ const InitialForm = ()=> {
         {/* <button type="button"><Link to="/select-subject" state={{formData}}>
     Next Step
   </Link></button> */}
-  <button type='button' onClick={handleNext}>Next</button>
+  <div className="form-group1"><button type='button' onClick={handleNext}>Next</button></div>
     </div>
     </div>
     </div>
