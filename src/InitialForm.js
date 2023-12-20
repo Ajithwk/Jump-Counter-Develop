@@ -140,7 +140,7 @@ const InitialForm = ()=> {
 
         <div className="form-group">
             <label className='block1'>
-                Bin Size:</label>
+                Bin Size (Seconds):</label>
                 <input
                     type="text"
                     name="binSize"
