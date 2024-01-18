@@ -498,7 +498,7 @@ useEffect(() => {
           <p>Phase we are in: {phase[currentSubject - 1]}</p>
           <p>Date: {(new Date()).toDateString()}</p>
           <p>Condition Code: {(formData?.subjects && formData?.subjects[currentSubject - 1]?.dropdownSelection) || ""}</p>
-          <p>Condition: <input type="text" /></p>
+          {/* <p>Condition: <input type="text" /></p> */}
         </div>
       </div>
       <div className="buttons-container">
