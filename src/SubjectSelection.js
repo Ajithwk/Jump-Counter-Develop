@@ -19,6 +19,8 @@ function SubjectSelection() {
   const video = formData?.uploadedVideo;
   const videoURL = video ? URL.createObjectURL(video) : null;
   const [binMap,setBinMap] = useState([]);
+  const [subjectTimerRunning, setSubjectTimerRunning] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => true));
+
   // State to track whether the timer has been started for each subject
   const [subjectTimerStarted, setSubjectTimerStarted] = useState(Array.from({ length: (formData?.subjects?.length || 0) }, () => false));
 
@@ -94,45 +96,80 @@ const handleFrequencyChange = async () => {
 useEffect(() => {
   handleFrequencyChange();
 }, [frequency]);
+// useEffect(() => {
+//   let interval;
 
+//   const startTimer = () => {
+//     interval = setInterval(() => {
+//       setSeconds((prevSeconds) => {
+//         const newSeconds = [...prevSeconds];
+//         newSeconds[currentSubject - 1] = (newSeconds[currentSubject - 1] + 1) % 60;
+//         return newSeconds;
+//       });
+
+//       setMinutes((prevMinutes) => {
+//         const newMinutes = [...prevMinutes];
+//         if (seconds[currentSubject - 1] === 59) {
+//           newMinutes[currentSubject - 1] = (newMinutes[currentSubject - 1] + 1) % 60;
+//         }
+//         return newMinutes;
+//       });
+
+//       setHours((prevHours) => {
+//         const newHours = [...prevHours];
+//         if (minutes[currentSubject - 1] === 59 && seconds[currentSubject - 1] === 59) {
+//           newHours[currentSubject - 1] = newHours[currentSubject - 1] + 1;
+//         }
+//         return newHours;
+//       });
+//     }, 1000);
+//   };
+
+//   const stopTimer = () => {
+//     clearInterval(interval);
+//   };
+
+//   if (running) {
+//     startTimer();
+//   } else {
+//     stopTimer();
+//   }
+
+//   return () => {
+//     stopTimer();
+//   };
+// }, [running, hours, minutes, seconds, currentSubject]);
   useEffect(() => {
     let interval;
     // console.log({seconds})
     const startTimer = () => {
       interval = setInterval(() => {
         for(let sub in formData.subjects){
-          if(subjectTimerStarted[sub]){
-        setSeconds((prevSeconds) => {
-          if (prevSeconds[sub] == 59) {
-            setMinutes((prevMinutes) => {
-              if (prevMinutes[sub] == 59) {
-                setHours((prevHours) => {
-                  const newHours = [...prevHours];
-                  newHours[sub] = newHours[sub] + 1;
-                  return newHours;
-                });
-                prevMinutes[sub] = 0;
-                return [...prevMinutes];
-              }
-              return prevMinutes.map((prevMinute, index) => {
-                if (index == sub) {
-                  return prevMinute + 1;
-                }
-                return prevMinute;
-              });
-            });
-            prevSeconds[sub] = 0;
-            return [...prevSeconds];
-          }
-          return prevSeconds.map((prevSecond, index) => {
-            if (index == sub) {
-              return prevSecond + 1;
-            }
-            return prevSecond;
-          });
-        });
+          if(subjectTimerStarted[sub]&&subjectTimerRunning[sub]){
+            setSeconds((prevSeconds) => {
+                      const newSeconds = [...prevSeconds];
+                      newSeconds[sub] = (newSeconds[sub] + 1) % 60;
+                      return newSeconds;
+                    });
+              
+                    setMinutes((prevMinutes) => {
+                      const newMinutes = [...prevMinutes];
+                      if (seconds[sub] === 59) {
+                        newMinutes[sub] = (newMinutes[sub] + 1) % 60;
+                      }
+                      return newMinutes;
+                    });
+              
+                    setHours((prevHours) => {
+                      const newHours = [...prevHours];
+                      if (minutes[sub] === 59 && seconds[sub] === 59) {
+                        newHours[sub] = newHours[sub] + 1;
+                      }
+                      return newHours;
+                    });
+      
       }
-      }
+    }
       }, 1000);
     };
 
@@ -209,7 +246,31 @@ useEffect(() => {
   const handleVideoEnd = () => {
     setRunning(false);
   };
-
+  useEffect(() => {
+    for(let sub in formData.subjects){
+      var hms = `${hours[sub].toString().padStart(2, "0")}:${minutes[sub].toString().padStart(2, "0")}:${seconds[sub].toString().padStart(2, "0")}`;
+      var a = hms.split(':');
+  
+      var s = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
+  
+      // for (let i = 0; i < (formData?.subjects?.length || 0); i++) {
+        const p = parseInt(formData?.subjects[sub]?.phaseOneMinutes || 0) * 60 + parseInt(formData?.subjects[sub]?.phaseOneSeconds || 0);
+        const p2 = parseInt(formData?.subjects[sub]?.phaseTwoMinutes || 0) * 60 + parseInt(formData?.subjects[sub]?.phaseTwoSeconds || 0);
+        //  if (p2 == s-p && (s!=0)&&(s-p>=0)) {
+          if(p2-1 == s-p && s !== 0 ){
+          console.log({p2,s,p,sub})
+      setSubjectTimerRunning((prevRunning) => {
+        const updatedRunning = [...prevRunning];
+        updatedRunning[sub] = false;
+        return updatedRunning;
+      });
+    }
+      // }
+    }
+      // return bin;
+  
+  }, [hours,minutes,seconds]);
+  
   const handleBin = async () => {
     // console.log({binMap})
     // console.log(hours[currentSubject-1],minutes[currentSubject-1],seconds[currentSubject-1])
@@ -220,7 +281,7 @@ useEffect(() => {
     var s = (+a[0]) * 60 * 60 + (+a[1]) * 60 + (+a[2]);
 
 
-    if (s % (formData?.binSize || 1) === 0 && s !== 0) {
+    if (s % (formData?.binSize || 1) === 0 && s !== 0 &&(subjectTimerRunning[sub])) {
        await setBin((prevBins) => {
         const updatedBins = [...prevBins];
         updatedBins[sub] = updatedBins[sub] + 1;
@@ -252,6 +313,7 @@ useEffect(() => {
     
     // for (let i = 0; i < (formData?.subjects?.length || 0); i++) {
       const p = parseInt(formData?.subjects[sub]?.phaseOneMinutes || 0) * 60 + parseInt(formData?.subjects[sub]?.phaseOneSeconds || 0);
+      const p2 = parseInt(formData?.subjects[sub]?.phaseTwoMinutes || 0) * 60 + parseInt(formData?.subjects[sub]?.phaseTwoSeconds || 0);
       if (p === s) {
         setPhase((prevPhase) => {
           const updatedPhase = [...prevPhase];
@@ -285,6 +347,14 @@ useEffect(() => {
         });
         
       }
+  //      if (p2 == s-p && (s!=0)&&(s-p>=0)) {
+  //       console.log({p2,s,p})
+  //   setSubjectTimerRunning((prevRunning) => {
+  //     const updatedRunning = [...prevRunning];
+  //     updatedRunning[sub] = false;
+  //     return updatedRunning;
+  //   });
+  // }
     // }
   }
     // return bin;
